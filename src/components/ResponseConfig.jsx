@@ -1,25 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Save, RotateCcw, ExternalLink, Zap } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-export default function ResponseConfig({ endpoint, onUpdate }) {
-    const [status, setStatus] = useState(200);
-    const [headers, setHeaders] = useState('{"Content-Type": "application/json"}');
-    const [body, setBody] = useState('{"success": true, "message": "Webhook received by HookRadar"}');
-    const [delay, setDelay] = useState(0);
-    const [isActive, setIsActive] = useState(true);
-    const [forwardingUrl, setForwardingUrl] = useState('');
+function getConfigDefaults(endpoint) {
+    return {
+        status: endpoint?.response_status || 200,
+        headers: endpoint?.response_headers || '{"Content-Type": "application/json"}',
+        body: endpoint?.response_body || '{"success": true, "message": "Webhook received by HookRadar"}',
+        delay: endpoint?.response_delay || 0,
+        isActive: endpoint ? endpoint.is_active === 1 || endpoint.is_active === true : true,
+        forwardingUrl: endpoint?.forwarding_url || '',
+    };
+}
 
-    useEffect(() => {
-        if (endpoint) {
-            setStatus(endpoint.response_status || 200);
-            setHeaders(endpoint.response_headers || '{"Content-Type": "application/json"}');
-            setBody(endpoint.response_body || '');
-            setDelay(endpoint.response_delay || 0);
-            setIsActive(endpoint.is_active === 1 || endpoint.is_active === true);
-            setForwardingUrl(endpoint.forwarding_url || '');
-        }
-    }, [endpoint]);
+export default function ResponseConfig({ endpoint, onUpdate }) {
+    const defaults = getConfigDefaults(endpoint);
+    const [status, setStatus] = useState(defaults.status);
+    const [headers, setHeaders] = useState(defaults.headers);
+    const [body, setBody] = useState(defaults.body);
+    const [delay, setDelay] = useState(defaults.delay);
+    const [isActive, setIsActive] = useState(defaults.isActive);
+    const [forwardingUrl, setForwardingUrl] = useState(defaults.forwardingUrl);
 
     const handleSave = () => {
         // Validate headers JSON
@@ -47,12 +48,12 @@ export default function ResponseConfig({ endpoint, onUpdate }) {
     };
 
     const handleReset = () => {
-        setStatus(200);
-        setHeaders('{"Content-Type": "application/json"}');
-        setBody('{"success": true, "message": "Webhook received by HookRadar"}');
-        setDelay(0);
-        setIsActive(true);
-        setForwardingUrl('');
+        setStatus(defaults.status);
+        setHeaders(defaults.headers);
+        setBody(defaults.body);
+        setDelay(defaults.delay);
+        setIsActive(defaults.isActive);
+        setForwardingUrl(defaults.forwardingUrl);
     };
 
     if (!endpoint) {

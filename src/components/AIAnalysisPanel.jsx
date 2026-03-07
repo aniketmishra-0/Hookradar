@@ -1,32 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
     Brain, Sparkles, Shield, Code, BarChart3, AlertTriangle,
     CheckCircle, Info, Copy, Check, ChevronDown, ChevronUp,
     Zap, Globe, FileCode, Bug
 } from 'lucide-react';
-import { fullAnalysis, analyzePatterns, detectWebhookSource, validatePayload, generateHandlerCode } from '../utils/analyzer';
+import { fullAnalysis, analyzePatterns } from '../utils/analyzer';
 
-export default function AIAnalysisPanel({ request, requests, endpoint }) {
-    const [analysis, setAnalysis] = useState(null);
-    const [patterns, setPatterns] = useState(null);
+export default function AIAnalysisPanel({ request, requests }) {
     const [activeTab, setActiveTab] = useState('overview');
     const [codeLanguage, setCodeLanguage] = useState('node');
     const [copied, setCopied] = useState(false);
     const [expandedSections, setExpandedSections] = useState({});
-
-    useEffect(() => {
-        if (request) {
-            const result = fullAnalysis(request);
-            setAnalysis(result);
-        }
-    }, [request]);
-
-    useEffect(() => {
-        if (requests && requests.length > 0) {
-            const result = analyzePatterns(requests);
-            setPatterns(result);
-        }
-    }, [requests]);
+    const analysis = request ? fullAnalysis(request) : null;
+    const patterns = requests?.length ? analyzePatterns(requests) : null;
 
     const copyToClipboard = (text) => {
         navigator.clipboard.writeText(text);

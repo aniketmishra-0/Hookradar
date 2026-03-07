@@ -15,6 +15,24 @@ function getServer() {
     return program.opts().server || DEFAULT_SERVER;
 }
 
+function normalizePath(path) {
+    if (!path || path === '/') return '/';
+    return path.startsWith('/') ? path : `/${path}`;
+}
+
+function tryParseJson(value) {
+    try {
+        return JSON.parse(value);
+    } catch {
+        return null;
+    }
+}
+
+function formatBodyPreview(body) {
+    const parsed = tryParseJson(body);
+    return parsed ? JSON.stringify(parsed, null, 2) : body;
+}
+
 async function apiCall(path, options = {}) {
     const server = getServer();
     try {
@@ -189,65 +207,56 @@ program
             });
 
             ws.on('message', (data) => {
-                try {
-                    const msg = JSON.parse(data.toString());
-                    if (msg.type === 'new_request' && msg.request) {
-                        const req = msg.request;
+                const msg = tryParseJson(data.toString());
+                if (msg?.type !== 'new_request' || !msg.request) {
+                    return;
+                }
 
-                        if (options.json) {
-                            console.log(JSON.stringify(req));
-                            return;
-                        }
+                const req = msg.request;
 
-                        const methodColors = {
-                            GET: chalk.green,
-                            POST: chalk.blue,
-                            PUT: chalk.yellow,
-                            PATCH: chalk.magenta,
-                            DELETE: chalk.red,
-                        };
-                        const colorFn = methodColors[req.method] || chalk.white;
-                        const timestamp = new Date(req.created_at).toLocaleTimeString();
+                if (options.json) {
+                    console.log(JSON.stringify(req));
+                    return;
+                }
 
-                        console.log(chalk.gray(`  ┌─ ${timestamp} ─────────────────────`));
-                        console.log(`  │ ${colorFn.bold(req.method.padEnd(7))} ${req.path} ${chalk.gray(`[${req.status_code}]`)}`);
-                        console.log(`  │ ${chalk.gray('Size:')} ${req.size}B  ${chalk.gray('IP:')} ${req.ip_address}  ${chalk.gray('Type:')} ${req.content_type || 'none'}`);
+                const methodColors = {
+                    GET: chalk.green,
+                    POST: chalk.blue,
+                    PUT: chalk.yellow,
+                    PATCH: chalk.magenta,
+                    DELETE: chalk.red,
+                };
+                const colorFn = methodColors[req.method] || chalk.white;
+                const timestamp = new Date(req.created_at).toLocaleTimeString();
+                const requestPath = normalizePath(req.path);
 
-                        // Show headers count
-                        try {
-                            const headers = JSON.parse(req.headers);
-                            console.log(`  │ ${chalk.gray('Headers:')} ${Object.keys(headers).length} headers`);
-                        } catch { }
+                console.log(chalk.gray(`  ┌─ ${timestamp} ─────────────────────`));
+                console.log(`  │ ${colorFn.bold(req.method.padEnd(7))} ${requestPath} ${chalk.gray(`[${req.response_status}]`)}`);
+                console.log(`  │ ${chalk.gray('Size:')} ${req.size}B  ${chalk.gray('IP:')} ${req.ip_address}  ${chalk.gray('Type:')} ${req.content_type || 'none'}`);
 
-                        // Show body preview
-                        if (req.body) {
-                            let bodyPreview = req.body;
-                            try {
-                                const parsed = JSON.parse(req.body);
-                                bodyPreview = JSON.stringify(parsed, null, 2);
-                            } catch { }
+                const headers = tryParseJson(req.headers);
+                if (headers) {
+                    console.log(`  │ ${chalk.gray('Headers:')} ${Object.keys(headers).length} headers`);
+                }
 
-                            const lines = bodyPreview.split('\n').slice(0, 8);
-                            lines.forEach(line => {
-                                console.log(chalk.gray(`  │ `) + chalk.white(line));
-                            });
-                            if (bodyPreview.split('\n').length > 8) {
-                                console.log(chalk.gray(`  │ ... (truncated)`));
-                            }
-                        }
-
-                        // Show query params
-                        try {
-                            const query = JSON.parse(req.query_params);
-                            if (Object.keys(query).length > 0) {
-                                console.log(`  │ ${chalk.gray('Query:')} ${JSON.stringify(query)}`);
-                            }
-                        } catch { }
-
-                        console.log(chalk.gray('  └' + '─'.repeat(40)));
-                        console.log('');
+                if (req.body) {
+                    const bodyPreview = formatBodyPreview(req.body);
+                    const lines = bodyPreview.split('\n').slice(0, 8);
+                    lines.forEach(line => {
+                        console.log(chalk.gray(`  │ `) + chalk.white(line));
+                    });
+                    if (bodyPreview.split('\n').length > 8) {
+                        console.log(chalk.gray(`  │ ... (truncated)`));
                     }
-                } catch { }
+                }
+
+                const query = tryParseJson(req.query_params);
+                if (query && Object.keys(query).length > 0) {
+                    console.log(`  │ ${chalk.gray('Query:')} ${JSON.stringify(query)}`);
+                }
+
+                console.log(chalk.gray('  └' + '─'.repeat(40)));
+                console.log('');
             });
 
             ws.on('close', () => {
@@ -317,11 +326,12 @@ program
                         DELETE: chalk.red,
                     };
                     const colorFn = methodColors[req.method] || chalk.white;
+                    const requestPath = normalizePath(req.path);
 
                     table.push([
                         colorFn.bold(req.method),
-                        req.path,
-                        req.status_code,
+                        requestPath,
+                        req.response_status,
                         `${req.size}B`,
                         req.content_type || '-',
                         new Date(req.created_at).toLocaleTimeString(),
@@ -409,10 +419,7 @@ program
                 console.log(chalk.gray('    Status: ') + chalk.cyan(replayResult.data.status));
                 console.log(chalk.gray('    Body:'));
 
-                let body = replayResult.data.body;
-                try {
-                    body = JSON.stringify(JSON.parse(body), null, 2);
-                } catch { }
+                const body = formatBodyPreview(replayResult.data.body);
 
                 body.split('\n').forEach(line => {
                     console.log(chalk.gray('      ') + line);
@@ -500,34 +507,34 @@ program
             });
 
             ws.on('message', (data) => {
-                try {
-                    const msg = JSON.parse(data.toString());
-                    if (msg.type === 'new_request' && msg.request) {
-                        const req = msg.request;
-                        const methodColors = {
-                            GET: chalk.green,
-                            POST: chalk.blue,
-                            PUT: chalk.yellow,
-                            PATCH: chalk.magenta,
-                            DELETE: chalk.red,
-                        };
-                        const colorFn = methodColors[req.method] || chalk.white;
-                        const timestamp = new Date(req.created_at).toLocaleTimeString();
+                const msg = tryParseJson(data.toString());
+                if (msg?.type !== 'new_request' || !msg.request) {
+                    return;
+                }
 
-                        console.log(chalk.gray(`  ┌─ ${timestamp} ─────────────────────`));
-                        console.log(`  │ ${colorFn.bold(req.method.padEnd(7))} ${req.path} ${chalk.gray(`[${req.status_code}]`)}`);
+                const req = msg.request;
+                const methodColors = {
+                    GET: chalk.green,
+                    POST: chalk.blue,
+                    PUT: chalk.yellow,
+                    PATCH: chalk.magenta,
+                    DELETE: chalk.red,
+                };
+                const colorFn = methodColors[req.method] || chalk.white;
+                const timestamp = new Date(req.created_at).toLocaleTimeString();
+                const requestPath = normalizePath(req.path);
 
-                        if (req.body) {
-                            let bodyPreview = req.body;
-                            try { bodyPreview = JSON.stringify(JSON.parse(req.body), null, 2); } catch { }
-                            const lines = bodyPreview.split('\n').slice(0, 10);
-                            lines.forEach(line => console.log(chalk.gray('  │ ') + chalk.white(line)));
-                        }
+                console.log(chalk.gray(`  ┌─ ${timestamp} ─────────────────────`));
+                console.log(`  │ ${colorFn.bold(req.method.padEnd(7))} ${requestPath} ${chalk.gray(`[${req.response_status}]`)}`);
 
-                        console.log(chalk.gray('  └' + '─'.repeat(40)));
-                        console.log('');
-                    }
-                } catch { }
+                if (req.body) {
+                    const bodyPreview = formatBodyPreview(req.body);
+                    const lines = bodyPreview.split('\n').slice(0, 10);
+                    lines.forEach(line => console.log(chalk.gray('  │ ') + chalk.white(line)));
+                }
+
+                console.log(chalk.gray('  └' + '─'.repeat(40)));
+                console.log('');
             });
 
             ws.on('error', (err) => {

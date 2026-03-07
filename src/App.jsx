@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
@@ -26,72 +26,85 @@ export default function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  // Load initial data
-  const loadData = useCallback(async () => {
-    try {
-      const [endpointsRes, statsRes] = await Promise.all([
-        api.getEndpoints(),
-        api.getStats()
-      ]);
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all([
+      api.getEndpoints(),
+      api.getStats()
+    ]).then(([endpointsRes, statsRes]) => {
+      if (cancelled) return;
       setEndpoints(endpointsRes.data);
       setStats(statsRes.data);
-    } catch (err) {
+    }).catch((err) => {
       console.error('Failed to load data:', err);
-    }
-  }, []);
+    });
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Global WebSocket connection
   useEffect(() => {
-    const ws = createWebSocket();
-    wsRef.current = ws;
+    let reconnectTimer = null;
+    let disposed = false;
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'new_request') {
-          // Update endpoints list
-          setEndpoints(prev => prev.map(ep => {
-            if (ep.id === data.endpoint_id) {
-              return {
-                ...ep,
-                request_count: (ep.request_count || 0) + 1,
-                last_request_at: data.request?.created_at
-              };
-            }
-            return ep;
-          }));
+    const connect = () => {
+      const ws = createWebSocket();
+      wsRef.current = ws;
 
-          // Update stats
-          setStats(prev => ({
-            ...prev,
-            total_requests: prev.total_requests + 1,
-            requests_today: prev.requests_today + 1
-          }));
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'new_request') {
+            // Update endpoints list
+            setEndpoints(prev => prev.map(ep => {
+              if (ep.id === data.endpoint_id) {
+                return {
+                  ...ep,
+                  request_count: (ep.request_count || 0) + 1,
+                  last_request_at: data.request?.created_at
+                };
+              }
+              return ep;
+            }));
 
-          // Trigger request list refresh
-          setNewRequestTrigger(prev => prev + 1);
+            // Update stats
+            setStats(prev => ({
+              ...prev,
+              total_requests: prev.total_requests + 1,
+              requests_today: prev.requests_today + 1
+            }));
+
+            // Trigger request list refresh
+            setNewRequestTrigger(prev => prev + 1);
+          }
+        } catch (err) {
+          console.error('WS message error:', err);
         }
-      } catch (err) {
-        console.error('WS message error:', err);
-      }
+      };
+
+      ws.onclose = () => {
+        if (disposed) return;
+        reconnectTimer = window.setTimeout(() => {
+          reconnectTimer = null;
+          if (!disposed) {
+            connect();
+          }
+        }, 3000);
+      };
     };
 
-    ws.onclose = () => {
-      // Reconnect after 3 seconds
-      setTimeout(() => {
-        if (wsRef.current === ws) {
-          const newWs = createWebSocket();
-          wsRef.current = newWs;
-        }
-      }, 3000);
-    };
+    connect();
 
     return () => {
-      ws.close();
+      disposed = true;
+      if (reconnectTimer) {
+        window.clearTimeout(reconnectTimer);
+      }
+      wsRef.current?.close();
+      wsRef.current = null;
     };
   }, []);
 
@@ -159,15 +172,16 @@ export default function App() {
       case 'endpoint':
         return selectedEndpoint ? (
           <EndpointView
+            key={selectedEndpoint.id}
             endpoint={selectedEndpoint}
             onUpdate={handleUpdateEndpoint}
-            onDelete={handleDeleteEndpoint}
             newRequestTrigger={newRequestTrigger}
           />
         ) : null;
       case 'settings':
         return (
           <ResponseConfig
+            key={selectedEndpoint ? `${selectedEndpoint.id}:${selectedEndpoint.updated_at}` : 'settings'}
             endpoint={selectedEndpoint}
             onUpdate={handleUpdateEndpoint}
           />

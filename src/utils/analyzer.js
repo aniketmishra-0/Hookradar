@@ -300,7 +300,7 @@ export function generateHandlerCode(method, headers, body, language = 'node') {
     if (language === 'node') {
         return generateNodeHandler(method, headerObj, bodyObj, source, eventType);
     } else if (language === 'python') {
-        return generatePythonHandler(method, headerObj, bodyObj, source, eventType);
+        return generatePythonHandler(method, headerObj, bodyObj, source);
     }
 
     return generateNodeHandler(method, headerObj, bodyObj, source, eventType);
@@ -402,7 +402,7 @@ app.listen(3000, () => {
     return code;
 }
 
-function generatePythonHandler(method, headers, body, source, eventType) {
+function generatePythonHandler(method, headers, body, source) {
     const signatureHeader = Object.keys(headers).find(h =>
         h.includes('signature') || h.includes('hmac')
     );

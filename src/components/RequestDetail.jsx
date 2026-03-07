@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Copy, Check, Trash2, Send, Clock, Hash, ArrowUpRight, FileText, Code2, Globe } from 'lucide-react';
-import { api, getMethodClass, getStatusClass, formatTime, formatBytes, prettyJSON, tryParseJSON } from '../utils/api';
+import { api, getMethodClass, getStatusClass, formatTime, formatBytes, normalizeRequestPath, prettyJSON, tryParseJSON } from '../utils/api';
 import { toast } from 'react-hot-toast';
 
 export default function RequestDetail({ request, onDelete, webhookUrl }) {
@@ -15,6 +15,7 @@ export default function RequestDetail({ request, onDelete, webhookUrl }) {
     const queryParams = tryParseJSON(request.query_params) || {};
     const headerEntries = Object.entries(headers);
     const queryEntries = Object.entries(queryParams);
+    const requestPath = normalizeRequestPath(request.path);
 
     const handleCopy = async (text, key) => {
         try {
@@ -57,7 +58,7 @@ export default function RequestDetail({ request, onDelete, webhookUrl }) {
             curl += ` \\\n  -d '${request.body.replace(/'/g, "\\'")}'`;
         }
 
-        curl += ` \\\n  "${webhookUrl}${request.path !== '/' ? request.path : ''}"`;
+        curl += ` \\\n  "${webhookUrl}${requestPath !== '/' ? requestPath : ''}"`;
 
         return curl;
     };
@@ -78,7 +79,7 @@ export default function RequestDetail({ request, onDelete, webhookUrl }) {
                         {request.method}
                     </span>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
-                        {request.path || '/'}
+                        {requestPath}
                     </span>
                     <span className={`request-status ${getStatusClass(request.response_status)}`}>
                         {request.response_status}

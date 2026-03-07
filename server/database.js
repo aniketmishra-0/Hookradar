@@ -54,7 +54,7 @@ db.exec(`
 // Add forwarding_url column if it doesn't exist (migration for existing DBs)
 try {
     db.exec(`ALTER TABLE endpoints ADD COLUMN forwarding_url TEXT DEFAULT ''`);
-} catch (e) {
+} catch {
     // Column already exists, ignore
 }
 

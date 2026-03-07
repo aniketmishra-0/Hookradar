@@ -104,3 +104,8 @@ export function prettyJSON(str) {
 export function getWebhookUrl(slug) {
     return `${window.location.origin}/hook/${slug}`;
 }
+
+export function normalizeRequestPath(path) {
+    if (!path || path === '/') return '/';
+    return path.startsWith('/') ? path : `/${path}`;
+}

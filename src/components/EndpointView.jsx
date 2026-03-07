@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-    Copy, Check, Trash2, Settings, Radio, Clock, Hash,
+    Copy, Check, Trash2, Settings, Clock, Hash,
     Search, Inbox, ArrowRight, RefreshCw, ExternalLink, Brain,
-    Filter, X, ChevronDown, SlidersHorizontal
+    X, SlidersHorizontal
 } from 'lucide-react';
 import RequestDetail from './RequestDetail';
 import ResponseConfig from './ResponseConfig';
 import AIAnalysisPanel from './AIAnalysisPanel';
-import { api, formatTime, getMethodClass, getStatusClass, getWebhookUrl } from '../utils/api';
+import { api, formatTime, getMethodClass, getStatusClass, getWebhookUrl, normalizeRequestPath } from '../utils/api';
 import { toast } from 'react-hot-toast';
 
-export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestTrigger }) {
+export default function EndpointView({ endpoint, onUpdate, newRequestTrigger }) {
     const [requests, setRequests] = useState([]);
     const [selectedRequest, setSelectedRequest] = useState(null);
     const [totalRequests, setTotalRequests] = useState(0);
@@ -29,15 +29,9 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
         date_from: '',
         date_to: '',
     });
-    const [activeFilterCount, setActiveFilterCount] = useState(0);
+    const activeFilterCount = Object.values(filters).filter(value => value !== '').length;
 
     const webhookUrl = getWebhookUrl(endpoint.slug);
-
-    // Count active filters
-    useEffect(() => {
-        const count = Object.values(filters).filter(v => v !== '').length;
-        setActiveFilterCount(count);
-    }, [filters]);
 
     // Load requests with filters
     const loadRequests = useCallback(async () => {
@@ -67,19 +61,8 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
     }, [endpoint.id, filters, searchQuery]);
 
     useEffect(() => {
-        setLoading(true);
-        setSelectedRequest(null);
-        setShowConfig(false);
-        setShowAI(false);
-        setFilters({ method: '', status: '', content_type: '', date_from: '', date_to: '' });
-        setSearchQuery('');
         loadRequests();
-    }, [endpoint.id]);
-
-    // Reload on filter/search change
-    useEffect(() => {
-        loadRequests();
-    }, [filters, searchQuery, loadRequests]);
+    }, [loadRequests]);
 
     // Reload when new request comes in
     useEffect(() => {
@@ -159,7 +142,7 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                     </button>
                 </div>
 
-                <ResponseConfig endpoint={endpoint} onUpdate={onUpdate} />
+                <ResponseConfig key={`${endpoint.id}:${endpoint.updated_at}`} endpoint={endpoint} onUpdate={onUpdate} />
             </div>
         );
     }
@@ -399,7 +382,7 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                                         {req.method}
                                     </span>
                                     <div className="request-info">
-                                        <div className="request-path">{req.path || '/'}</div>
+                                        <div className="request-path">{normalizeRequestPath(req.path)}</div>
                                         <div className="request-time">{formatTime(req.created_at)}</div>
                                     </div>
                                     <span className={`request-status ${getStatusClass(req.response_status)}`}>
@@ -417,7 +400,6 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                         <AIAnalysisPanel
                             request={selectedRequest}
                             requests={requests}
-                            endpoint={endpoint}
                         />
                     ) : selectedRequest ? (
                         <RequestDetail

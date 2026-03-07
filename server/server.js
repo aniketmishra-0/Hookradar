@@ -47,9 +47,10 @@ wss.on('connection', (ws, req) => {
                 }
             }
         });
+        return;
     }
 
-    // Also track global listeners
+    // Track listeners that want every endpoint event.
     if (!clients.has('__global__')) {
         clients.set('__global__', new Set());
     }
@@ -59,6 +60,9 @@ wss.on('connection', (ws, req) => {
         const globalSet = clients.get('__global__');
         if (globalSet) {
             globalSet.delete(ws);
+            if (globalSet.size === 0) {
+                clients.delete('__global__');
+            }
         }
     });
 });
@@ -208,7 +212,11 @@ app.get('/api/endpoints/:id/requests', (req, res) => {
         }
 
         if (date_to) {
-            conditions.push("created_at <= ?");
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date_to)) {
+                conditions.push("created_at < datetime(?, '+1 day')");
+            } else {
+                conditions.push("created_at <= ?");
+            }
             params.push(date_to);
         }
 
@@ -328,7 +336,7 @@ app.get('/api/endpoints/:id/analysis', (req, res) => {
 // Handle all webhook requests
 const webhookHandler = async (req, res) => {
     const slug = req.params.slug;
-    const subpath = req.params[0] || '/';
+    const subpath = req.params[0] ? `/${req.params[0]}` : '/';
 
     try {
         const endpoint = stmts.getEndpointBySlug.get(slug);

@@ -1,6 +1,6 @@
-import { Radio, LayoutDashboard, Plus, Settings, Webhook, Activity } from 'lucide-react';
+import { Radio, LayoutDashboard, Plus, Settings, Webhook, Activity, Moon, Sun } from 'lucide-react';
 
-export default function Sidebar({ endpoints, selectedEndpoint, currentView, stats, onNavigate, onSelectEndpoint, onCreateEndpoint }) {
+export default function Sidebar({ endpoints, selectedEndpoint, currentView, stats, theme, toggleTheme, onNavigate, onSelectEndpoint, onCreateEndpoint }) {
     return (
         <aside className="sidebar">
             <div className="sidebar-header">
@@ -59,6 +59,17 @@ export default function Sidebar({ endpoints, selectedEndpoint, currentView, stat
                             </div>
                         ))
                     )}
+                </div>
+
+                <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+                    <button
+                        className="sidebar-link"
+                        onClick={toggleTheme}
+                        title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                    >
+                        {theme === 'dark' ? <Sun className="icon" /> : <Moon className="icon" />}
+                        <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                    </button>
                 </div>
             </nav>
 

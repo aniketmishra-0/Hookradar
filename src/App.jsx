@@ -15,7 +15,16 @@ export default function App() {
   const [selectedEndpoint, setSelectedEndpoint] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newRequestTrigger, setNewRequestTrigger] = useState(0);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
   const wsRef = useRef(null);
+
+  // Theme effect
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   // Load initial data
   const loadData = useCallback(async () => {
@@ -176,9 +185,9 @@ export default function App() {
           className: 'toast-custom',
           duration: 3000,
           style: {
-            background: '#22222e',
-            color: '#f1f1f4',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'var(--bg-elevated)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-primary)',
             fontFamily: "'Inter', sans-serif",
             fontSize: '0.85rem'
           },
@@ -191,6 +200,8 @@ export default function App() {
           selectedEndpoint={selectedEndpoint}
           currentView={currentView}
           stats={stats}
+          theme={theme}
+          toggleTheme={toggleTheme}
           onNavigate={setCurrentView}
           onSelectEndpoint={handleSelectEndpoint}
           onCreateEndpoint={() => setShowCreateModal(true)}

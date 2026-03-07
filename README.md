@@ -360,6 +360,27 @@ hookradar/
 - 🔔 **Email/Slack Notifications** — Alert on incoming webhooks
 - 📱 **Mobile App** — Monitor webhooks on the go
 
+### Pro & Enterprise Features
+
+The items below describe planned features for future hosted HookRadar plans.
+
+- **Unlimited URLs**
+- **Custom Actions** — Create advanced custom workflows
+- **Schedules and Uptime Monitors**
+- **Custom URL and Email Addresses**
+- **Secure Account Storage** — Your data is securely stored in your HookRadar account
+- **Non-Expiring URLs and Email Addresses**
+- **Unlimited Requests and Emails per URL**
+- **CSV Export**
+- **Localhost Forwarding**
+- **Email Support**
+
+### Enterprise Features
+
+- **Custom Domain**
+- **Multi-User Support**
+- **SAML 2.0 Single Sign-On**
+
 ---
 
 ## Contributing

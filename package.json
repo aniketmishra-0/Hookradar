@@ -1,8 +1,27 @@
 {
   "name": "hookradar",
-  "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "🛰️ Open Source Webhook Tester & Debugger — Inspect, debug, and replay webhooks in real-time",
+  "keywords": [
+    "webhook",
+    "tester",
+    "debugger",
+    "inspector",
+    "http",
+    "api",
+    "realtime",
+    "open-source"
+  ],
+  "author": "HookRadar",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/hookradar"
+  },
+  "bin": {
+    "hookradar": "./bin/hookradar.js"
+  },
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:client": "vite",

@@ -3,6 +3,7 @@ import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { nanoid } from 'nanoid';
 import { v4 as uuidv4 } from 'uuid';
@@ -249,7 +250,28 @@ app.post('/api/requests/:id/replay', async (req, res) => {
     }
 });
 
-// ==================== Webhook Catch-All Route ====================
+// Analyze a request (AI-powered)
+app.get('/api/requests/:id/analyze', (req, res) => {
+    try {
+        const request = stmts.getRequest.get(req.params.id);
+        if (!request) return res.status(404).json({ success: false, error: 'Request not found' });
+        // Return the request data for frontend analysis
+        res.json({ success: true, data: request });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
+
+// Get pattern analysis for an endpoint
+app.get('/api/endpoints/:id/analysis', (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit) || 100;
+        const requests = stmts.getRequestsByEndpoint.all(req.params.id, limit, 0);
+        res.json({ success: true, data: requests });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
+});
 
 // Handle all webhook requests
 const webhookHandler = async (req, res) => {
@@ -332,7 +354,6 @@ app.all('/hook/:slug/*', webhookHandler);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distPath = path.join(__dirname, '..', 'dist');
 
-import fs from 'fs';
 if (fs.existsSync(distPath)) {
     app.use(express.static(distPath));
     app.get('*', (req, res) => {

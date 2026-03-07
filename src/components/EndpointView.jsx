@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Copy, Check, Trash2, Settings, Radio, Clock, Hash,
-    Search, Inbox, ArrowRight, RefreshCw, ExternalLink
+    Search, Inbox, ArrowRight, RefreshCw, ExternalLink, Brain
 } from 'lucide-react';
 import RequestDetail from './RequestDetail';
 import ResponseConfig from './ResponseConfig';
+import AIAnalysisPanel from './AIAnalysisPanel';
 import { api, formatTime, getMethodClass, getStatusClass, getWebhookUrl } from '../utils/api';
 import { toast } from 'react-hot-toast';
 
@@ -15,6 +16,7 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
     const [searchQuery, setSearchQuery] = useState('');
     const [copied, setCopied] = useState(false);
     const [showConfig, setShowConfig] = useState(false);
+    const [showAI, setShowAI] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const webhookUrl = getWebhookUrl(endpoint.slug);
@@ -36,6 +38,7 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
         setLoading(true);
         setSelectedRequest(null);
         setShowConfig(false);
+        setShowAI(false);
         loadRequests();
     }, [endpoint.id, loadRequests]);
 
@@ -154,6 +157,13 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                         {totalRequests} requests
                     </div>
                     <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px' }}>
+                        <button
+                            className={`btn btn-sm ${showAI ? 'btn-ai-active' : 'btn-ghost'}`}
+                            onClick={() => setShowAI(!showAI)}
+                        >
+                            <Brain className="icon" size={14} />
+                            AI Analysis
+                        </button>
                         <button className="btn btn-ghost btn-sm" onClick={() => setShowConfig(true)}>
                             <Settings className="icon" size={14} />
                             Configure
@@ -169,7 +179,7 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                 </div>
             </div>
 
-            {/* Body: Request List + Detail */}
+            {/* Body: Request List + Detail/AI */}
             <div className="endpoint-body">
                 {/* Request List Panel */}
                 <div className="request-list-panel">
@@ -236,9 +246,15 @@ export default function EndpointView({ endpoint, onUpdate, onDelete, newRequestT
                     </div>
                 </div>
 
-                {/* Request Detail Panel */}
+                {/* Request Detail / AI Panel */}
                 <div className="request-detail">
-                    {selectedRequest ? (
+                    {showAI ? (
+                        <AIAnalysisPanel
+                            request={selectedRequest}
+                            requests={requests}
+                            endpoint={endpoint}
+                        />
+                    ) : selectedRequest ? (
                         <RequestDetail
                             request={selectedRequest}
                             onDelete={handleDeleteRequest}

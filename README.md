@@ -1,37 +1,89 @@
-# 🛰️ HookRadar — Webhook Tester & Debugger
+# 🛰️ HookRadar
 
-> Open-source webhook testing and debugging tool. Inspect, debug, and replay incoming HTTP webhooks in real-time.
+### Open Source Webhook Tester & Debugger
 
-![HookRadar](https://img.shields.io/badge/HookRadar-Open%20Source-6366f1?style=for-the-badge)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react)
+> **Webhook ka spy camera jo developer ki zindagi aasaan kare!**
+>
+> HookRadar ek free open source tool hai jo developers ko webhooks real-time mein test, debug aur analyze karne mein help karta hai — bina koi server setup kiye!
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)](LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=for-the-badge)](CONTRIBUTING.md)
+
+---
+
+## 🤔 What is HookRadar?
+
+**For Developers:**  
+HookRadar is an open source webhook inspection tool — instant endpoints, real-time request monitoring, request replay, self-hostable. The free, open source alternative to Webhook.site!
+
+**Simple Explanation:**  
+When apps talk to each other automatically over the internet (like Razorpay telling your server "Payment successful!"), HookRadar catches those messages and shows you exactly what was sent — like a spy camera for internet messages.
+
+### The Pizza Analogy 🍕
+
+> Zomato pe pizza order kiya → Payment Razorpay se ki → Razorpay ne server ko message bheja "Payment successful!" → **Yahi Webhook hai!**
+>
+> Problem: Razorpay internet pe hai, aapka laptop localhost pe. Razorpay localhost tak pahunch hi nahi sakta!
+>
+> **HookRadar Solution:** Ek public URL deta hai → Razorpay is URL pe request bhejta hai → Aap real-time mein poora data dekh sakte ho!
+
+---
 
 ## ✨ Features
 
-- **🔗 Unique Webhook URLs** — Generate unique endpoints to receive and inspect webhooks
-- **⚡ Real-time Monitoring** — Watch incoming requests appear instantly via WebSocket
-- **🔍 Full Request Inspection** — View headers, body, query parameters, and metadata
-- **🎨 Custom Responses** — Configure status codes, headers, response body, and delays
-- **🔄 Request Replay** — Forward/replay captured requests to any URL
-- **📋 cURL Export** — Generate cURL commands to reproduce any captured request
-- **🌙 Premium Dark UI** — Beautiful, modern interface with smooth animations
-- **💾 Persistent Storage** — SQLite database stores all endpoints and requests
-- **🚀 Self-hosted** — Run on your own server, own your data
+| Feature | Description |
+|---------|-------------|
+| 🔗 **Unique Webhook URLs** | Generate unique endpoints to receive webhooks |
+| ⚡ **Real-time Dashboard** | Watch incoming requests appear instantly (WebSocket) |
+| 🔍 **Payload Inspector** | View headers, body, query params, method, IP, size |
+| 📜 **Request History** | All past requests saved & searchable |
+| 🔄 **Replay / Forward** | Replay any captured request to another URL |
+| 🎨 **Response Customizer** | Set custom status codes, headers, body, and delays |
+| 📋 **cURL Export** | One-click cURL command generation for any request |
+| 🔎 **Search & Filter** | Filter requests by method, path, or body content |
+| 🌙 **Premium Dark UI** | Beautiful, modern interface with smooth animations |
+| 💾 **Persistent Storage** | SQLite database stores all endpoints and requests |
+| 🐳 **Docker Ready** | Self-host with a single `docker compose up` |
+| 🚀 **Self-hosted** | Run on your own server, own your data |
+
+---
+
+## 🆚 Why HookRadar?
+
+| | Webhook.site | RequestBin | Hookdeck | **HookRadar** |
+|---|---|---|---|---|
+| **Open Source** | ❌ | ❌ | ❌ | ✅ |
+| **Free** | Limited (100 req) | Limited | Paid | ✅ Unlimited |
+| **Self-hosted** | ❌ | ❌ | ❌ | ✅ |
+| **Real-time** | ✅ | ❌ | ✅ | ✅ |
+| **Custom Responses** | Paid | ❌ | ✅ | ✅ |
+| **Request Replay** | Paid | ❌ | ✅ | ✅ |
+| **Docker** | ❌ | ❌ | ❌ | ✅ |
+
+> **Postman vs HookRadar:** Postman = Aap khud request bhejte ho (You → API). HookRadar = Doosra server request bhejta hai aapko (Razorpay/GitHub → You). Dono complementary tools hain!
+
+---
 
 ## 🛠️ Tech Stack
 
-| Frontend | Backend | Database |
-|----------|---------|----------|
-| React 19 | Node.js + Express | SQLite (better-sqlite3) |
-| Vite | WebSocket (ws) | |
-| Lucide Icons | nanoid + uuid | |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Frontend | React 19 + Vite | Dashboard UI |
+| Backend | Node.js + Express | API + Webhook receiver |
+| Real-time | WebSockets (ws) | Live updates |
+| Database | SQLite (better-sqlite3) | Request storage |
+| Icons | Lucide React | Beautiful icon set |
+| Styling | Vanilla CSS | Premium dark theme |
 
-## 🚀 Getting Started
+---
+
+## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- npm or yarn
+- npm
 
 ### Installation
 
@@ -47,61 +99,60 @@ npm install
 npm run dev
 ```
 
-The app will be available at:
-- **Frontend**: http://localhost:5173
-- **Backend API**: http://localhost:3001
-- **Webhook endpoints**: http://localhost:3001/hook/<slug>
+**That's it!** Open http://localhost:5173 🎉
 
-### Production Build
+### 🐳 Docker (Self-hosting)
 
 ```bash
-# Build the frontend
-npm run build
+# Using Docker Compose (recommended)
+docker compose up -d
 
-# Start the production server
-npm start
+# Or build manually
+docker build -t hookradar .
+docker run -p 3001:3001 -v hookradar-data:/app/data hookradar
 ```
+
+Open http://localhost:3001
+
+---
 
 ## 📡 Usage
 
 ### 1. Create an Endpoint
-Click "New Endpoint" to generate a unique webhook URL.
+Click **"Create Webhook Endpoint"** → Get a unique URL like `http://localhost:5173/hook/abc123`
 
 ### 2. Send Webhooks
-Send any HTTP request to your webhook URL:
 
 ```bash
-# POST request
-curl -X POST http://localhost:5173/hook/your-slug \
+# POST with JSON payload
+curl -X POST http://localhost:5173/hook/YOUR_SLUG \
   -H "Content-Type: application/json" \
-  -d '{"event": "payment.completed", "amount": 99.99}'
+  -d '{"event": "payment.completed", "amount": 99.99, "currency": "INR"}'
 
-# GET request with query params
-curl "http://localhost:5173/hook/your-slug?status=active&page=1"
+# GET with query parameters
+curl "http://localhost:5173/hook/YOUR_SLUG?status=active&page=1"
 
 # PUT request
-curl -X PUT http://localhost:5173/hook/your-slug \
+curl -X PUT http://localhost:5173/hook/YOUR_SLUG \
   -H "Content-Type: application/json" \
-  -d '{"name": "Updated Name"}'
+  -d '{"name": "Aniket", "role": "admin"}'
 ```
 
 ### 3. Inspect & Debug
-View detailed information about each request:
-- HTTP method, path, and status
-- Request headers
-- Request body (auto-formatted JSON)
-- Query parameters
-- cURL command to reproduce
+- Click any request → See **Headers**, **Body** (auto-formatted JSON), **Query Params**
+- Copy **cURL** command to reproduce any request
+- View **IP address**, **size**, **response time**, **content type**
 
 ### 4. Customize Responses
-Configure what your endpoint returns:
-- **Status Code**: 200, 201, 400, 500, etc.
-- **Headers**: Custom response headers
+- **Status Code**: 200, 201, 400, 404, 500, etc.
+- **Headers**: Custom response headers (JSON)
 - **Body**: Custom response body
-- **Delay**: Simulate slow responses
+- **Delay**: Simulate slow responses (0-30000ms)
 
-### 5. Replay Requests
-Forward any captured request to another URL for testing.
+### 5. Replay / Forward
+Click **"Replay"** on any request → Enter target URL → Forward the exact same request
+
+---
 
 ## 📁 Project Structure
 
@@ -112,44 +163,82 @@ hookradar/
 │   └── database.js        # SQLite database setup
 ├── src/
 │   ├── components/
-│   │   ├── Sidebar.jsx
-│   │   ├── Dashboard.jsx
-│   │   ├── EndpointView.jsx
-│   │   ├── RequestDetail.jsx
-│   │   ├── ResponseConfig.jsx
+│   │   ├── Sidebar.jsx           # Navigation & endpoint list
+│   │   ├── Dashboard.jsx         # Home with stats & quick actions
+│   │   ├── EndpointView.jsx      # Request list + detail split view
+│   │   ├── RequestDetail.jsx     # Request inspector (tabs)
+│   │   ├── ResponseConfig.jsx    # Custom response settings
 │   │   └── CreateEndpointModal.jsx
 │   ├── utils/
 │   │   └── api.js         # API client & utilities
-│   ├── App.jsx
-│   ├── main.jsx
-│   └── index.css
+│   ├── App.jsx            # Main app with state management
+│   ├── main.jsx           # Entry point
+│   └── index.css          # Design system (CSS variables)
 ├── public/
-│   └── hookradar-icon.svg
-├── index.html
-├── vite.config.js
+│   └── hookradar-icon.svg # Logo/favicon
+├── Dockerfile             # Docker support
+├── docker-compose.yml     # Docker Compose
+├── CONTRIBUTING.md        # Contribution guide
+├── LICENSE                # MIT License
 └── package.json
 ```
 
-## 🤝 Contributing
+---
 
-Contributions are welcome! Feel free to:
+## 🗺️ Roadmap
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Phase | Timeline | Features | Status |
+|-------|----------|----------|--------|
+| **Phase 1** | Week 1-2 | Backend + Basic UI | ✅ Done |
+| **Phase 2** | Week 3-4 | React Dashboard + WebSocket | ✅ Done |
+| **Phase 3** | Week 5-6 | Replay, Filter, CLI Tool | 🔄 In Progress |
+| **Phase 4** | Month 3-4 | AI Integration (Payload Analysis) | 📋 Planned |
+| **Phase 5** | Month 2 | Open Source Launch (Product Hunt, Reddit) | 📋 Planned |
+| **Phase 6** | Ongoing | Community building, Regular releases | 📋 Planned |
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Lucide Icons](https://lucide.dev/) for beautiful icons
-- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) for fast SQLite bindings
-- Inspired by webhook.site, RequestBin, and similar tools
+### Future Features
+- 🤖 **AI-Powered Payload Analyzer** — Auto-detect webhook source & data
+- 🖥️ **CLI Tool** — `npm install -g hookradar` for terminal usage
+- 🔐 **HMAC Signature Verification** — Security analysis
+- 📊 **Analytics Dashboard** — Request trends & patterns
+- 🔗 **Team Collaboration** — Share endpoints with team
+- 🌍 **Multi-language Support** — Hindi, Spanish, etc.
 
 ---
 
-**Made with ❤️ by the HookRadar community**
+## 🤝 Contributing
+
+We welcome contributions of all kinds! Check out our [Contributing Guide](CONTRIBUTING.md).
+
+**You don't need to be a coding expert!** Here are ways to help:
+- 🐛 Report bugs
+- 📝 Improve documentation
+- 🎨 Suggest UI improvements
+- 🌐 Translate README
+- ⭐ Star the repo!
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Lucide Icons](https://lucide.dev/) — Beautiful icon set
+- [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) — Fast SQLite bindings
+- Inspired by Webhook.site, RequestBin, and the developer community
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the developer community**
+
+⭐ **Star this repo if you find it useful!** ⭐
+
+[Report Bug](../../issues) · [Request Feature](../../issues) · [Contributing Guide](CONTRIBUTING.md)
+
+</div>

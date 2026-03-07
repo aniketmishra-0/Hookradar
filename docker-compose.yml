@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  hookradar:
+    build: .
+    container_name: hookradar
+    ports:
+      - "3001:3001"
+    volumes:
+      - hookradar-data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/api/stats" ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  hookradar-data:
+    driver: local

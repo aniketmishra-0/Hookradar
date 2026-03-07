@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import { WebSocketServer } from 'ws';
 import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { nanoid } from 'nanoid';
 import { v4 as uuidv4 } from 'uuid';
 import { stmts } from './database.js';
@@ -325,6 +327,19 @@ const webhookHandler = async (req, res) => {
 // Catch all HTTP methods for webhook endpoints
 app.all('/hook/:slug', webhookHandler);
 app.all('/hook/:slug/*', webhookHandler);
+
+// Serve static frontend in production
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const distPath = path.join(__dirname, '..', 'dist');
+
+import fs from 'fs';
+if (fs.existsSync(distPath)) {
+    app.use(express.static(distPath));
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+    });
+    console.log('📦 Serving static frontend from /dist');
+}
 
 // Start server
 server.listen(PORT, () => {

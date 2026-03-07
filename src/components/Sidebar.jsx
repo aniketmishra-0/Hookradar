@@ -9,6 +9,7 @@ import {
     ShieldCheck,
     Sparkles,
     Sun,
+    Webhook,
 } from 'lucide-react';
 import { formatTime } from '../utils/api';
 
@@ -38,7 +39,7 @@ export default function Sidebar({
             <div className="sidebar-header">
                 <button className="sidebar-logo" onClick={() => onNavigate('dashboard')}>
                     <div className="sidebar-logo-icon">
-                        <img src="/hookradar-logo.webp" alt="HookRadar Logo" className="sidebar-logo-image" />
+                        <Webhook className="sidebar-logo-glyph" />
                     </div>
                     <div>
                         <div className="sidebar-logo-text">HookRadar</div>

@@ -1,4 +1,4 @@
-# <img src="public/hookradar-logo.webp" width="40" style="vertical-align: middle; border-radius: 8px;" alt="HookRadar Logo" /> HookRadar
+# <img src="public/hookradar-icon.svg" width="40" style="vertical-align: middle;" alt="HookRadar Icon" /> HookRadar
 
 ### Open Source Webhook Tester and Debugger
 
@@ -337,7 +337,7 @@ hookradar/
 │   ├── main.jsx             # Entry point
 │   └── index.css            # Design system (CSS variables)
 ├── public/
-│   └── hookradar-logo.webp  # Logo/favicon
+│   └── hookradar-icon.svg   # Lucide Webhook icon/favicon
 ├── Dockerfile               # Docker support
 ├── docker-compose.yml       # Docker Compose
 ├── CONTRIBUTING.md          # Contribution guide

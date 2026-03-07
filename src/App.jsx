@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Menu, Plus } from 'lucide-react';
 import { Toaster, toast } from 'react-hot-toast';
 import AuthScreen from './components/AuthScreen';
 import CreateEndpointModal from './components/CreateEndpointModal';
@@ -10,6 +11,7 @@ import { api, createWebSocket, isLocalHostname } from './utils/api';
 import './index.css';
 
 const defaultStats = { total_endpoints: 0, total_requests: 0, requests_today: 0 };
+const compactLayoutQuery = '(max-width: 1180px)';
 
 export default function App() {
   const [endpoints, setEndpoints] = useState([]);
@@ -22,6 +24,10 @@ export default function App() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [authUser, setAuthUser] = useState(null);
   const [setupRequired, setSetupRequired] = useState(false);
+  const [isCompactLayout, setIsCompactLayout] = useState(() => (
+    typeof window !== 'undefined' ? window.matchMedia(compactLayoutQuery).matches : false
+  ));
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const wsRef = useRef(null);
 
   useEffect(() => {
@@ -29,7 +35,62 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(compactLayoutQuery);
+    const handleChange = (event) => {
+      setIsCompactLayout(event.matches);
+      if (!event.matches) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+    } else {
+      mediaQuery.addListener(handleChange);
+    }
+
+    return () => {
+      if (mediaQuery.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleChange);
+      } else {
+        mediaQuery.removeListener(handleChange);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isCompactLayout || !isSidebarOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isCompactLayout, isSidebarOpen]);
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  const closeSidebar = () => setIsSidebarOpen(false);
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+    closeSidebar();
+  };
+  const handleNavigate = (view) => {
+    setCurrentView(view);
+    closeSidebar();
+  };
 
   const resetWorkspaceState = () => {
     setEndpoints([]);
@@ -164,6 +225,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await api.logout();
+      closeSidebar();
       resetWorkspaceState();
       setAuthUser(null);
       toast.success('Signed out');
@@ -231,7 +293,20 @@ export default function App() {
   const handleSelectEndpoint = (endpoint) => {
     setSelectedEndpoint(endpoint);
     setCurrentView('endpoint');
+    closeSidebar();
   };
+
+  const currentPanelTitle = currentView === 'settings'
+    ? 'Response studio'
+    : currentView === 'endpoint'
+      ? (selectedEndpoint?.name || selectedEndpoint?.slug || 'Endpoint workspace')
+      : 'Workspace overview';
+
+  const currentPanelMeta = currentView === 'settings'
+    ? 'Tune headers, status, delay, and forwarding'
+    : currentView === 'endpoint'
+      ? `/hook/${selectedEndpoint?.slug || 'route'}`
+      : `${stats.total_endpoints} routes and ${stats.total_requests} events`;
 
   const renderContent = () => {
     switch (currentView) {
@@ -240,7 +315,7 @@ export default function App() {
           <Dashboard
             stats={stats}
             endpoints={endpoints}
-            onCreateEndpoint={() => setShowCreateModal(true)}
+            onCreateEndpoint={openCreateModal}
             onSelectEndpoint={handleSelectEndpoint}
             onDeleteEndpoint={handleDeleteEndpoint}
           />
@@ -267,7 +342,7 @@ export default function App() {
           <Dashboard
             stats={stats}
             endpoints={endpoints}
-            onCreateEndpoint={() => setShowCreateModal(true)}
+            onCreateEndpoint={openCreateModal}
             onSelectEndpoint={handleSelectEndpoint}
             onDeleteEndpoint={handleDeleteEndpoint}
           />
@@ -309,6 +384,14 @@ export default function App() {
       ) : (
         <>
           <div className="app-layout">
+            {isCompactLayout && (
+              <button
+                className={`sidebar-backdrop ${isSidebarOpen ? 'visible' : ''}`}
+                onClick={closeSidebar}
+                aria-label="Close navigation"
+              />
+            )}
+
             <Sidebar
               currentUser={authUser}
               endpoints={endpoints}
@@ -317,13 +400,39 @@ export default function App() {
               stats={stats}
               theme={theme}
               toggleTheme={toggleTheme}
-              onNavigate={setCurrentView}
+              isCompactLayout={isCompactLayout}
+              isOpen={isSidebarOpen}
+              onClose={closeSidebar}
+              onNavigate={handleNavigate}
               onSelectEndpoint={handleSelectEndpoint}
-              onCreateEndpoint={() => setShowCreateModal(true)}
+              onCreateEndpoint={openCreateModal}
               onLogout={handleLogout}
             />
 
             <main className="main-content">
+              {isCompactLayout && (
+                <div className="mobile-shell-bar">
+                  <button
+                    className="mobile-shell-menu"
+                    onClick={() => setIsSidebarOpen(true)}
+                    aria-label="Open navigation"
+                  >
+                    <Menu size={18} />
+                  </button>
+
+                  <div className="mobile-shell-context">
+                    <span className="mobile-shell-label">HookRadar</span>
+                    <strong>{currentPanelTitle}</strong>
+                    <span>{currentPanelMeta}</span>
+                  </div>
+
+                  <button className="mobile-shell-create" onClick={openCreateModal}>
+                    <Plus size={16} />
+                    New
+                  </button>
+                </div>
+              )}
+
               {renderContent()}
             </main>
           </div>

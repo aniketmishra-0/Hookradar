@@ -10,6 +10,7 @@ import {
     Sparkles,
     Sun,
     Webhook,
+    X,
 } from 'lucide-react';
 import { formatTime } from '../utils/api';
 
@@ -23,6 +24,9 @@ export default function Sidebar({
     stats,
     theme,
     toggleTheme,
+    isCompactLayout,
+    isOpen,
+    onClose,
     onNavigate,
     onSelectEndpoint,
     onCreateEndpoint,
@@ -34,18 +38,54 @@ export default function Sidebar({
         .sort((a, b) => new Date(b.last_request_at || b.created_at || 0) - new Date(a.last_request_at || a.created_at || 0))
         .slice(0, 6);
 
+    const handleNavigate = (view) => {
+        onNavigate(view);
+        if (isCompactLayout) {
+            onClose();
+        }
+    };
+
+    const handleSelectRoute = (endpoint) => {
+        onSelectEndpoint(endpoint);
+        if (isCompactLayout) {
+            onClose();
+        }
+    };
+
+    const handleCreate = () => {
+        onCreateEndpoint();
+        if (isCompactLayout) {
+            onClose();
+        }
+    };
+
+    const handleLogout = () => {
+        onLogout();
+        if (isCompactLayout) {
+            onClose();
+        }
+    };
+
     return (
-        <aside className="sidebar">
+        <aside className={`sidebar ${isCompactLayout ? 'sidebar-compact' : ''} ${isOpen ? 'open' : ''}`}>
             <div className="sidebar-header">
-                <button className="sidebar-logo" onClick={() => onNavigate('dashboard')}>
-                    <div className="sidebar-logo-icon">
-                        <Webhook className="sidebar-logo-glyph" />
-                    </div>
-                    <div>
-                        <div className="sidebar-logo-text">HookRadar</div>
-                        <span className="sidebar-logo-badge">Control deck</span>
-                    </div>
-                </button>
+                <div className="sidebar-header-row">
+                    <button className="sidebar-logo" onClick={() => handleNavigate('dashboard')}>
+                        <div className="sidebar-logo-icon">
+                            <Webhook className="sidebar-logo-glyph" />
+                        </div>
+                        <div>
+                            <div className="sidebar-logo-text">HookRadar</div>
+                            <span className="sidebar-logo-badge">Control deck</span>
+                        </div>
+                    </button>
+
+                    {isCompactLayout && (
+                        <button className="sidebar-close" onClick={onClose} aria-label="Close navigation">
+                            <X size={18} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="sidebar-nav">
@@ -82,7 +122,7 @@ export default function Sidebar({
                         </div>
                     )}
 
-                    <button className="sidebar-primary-link" onClick={onCreateEndpoint}>
+                    <button className="sidebar-primary-link" onClick={handleCreate}>
                         <Plus className="icon" />
                         New endpoint
                     </button>
@@ -92,13 +132,13 @@ export default function Sidebar({
 
                 <button
                     className={`sidebar-link ${currentView === 'dashboard' ? 'active' : ''}`}
-                    onClick={() => onNavigate('dashboard')}
+                    onClick={() => handleNavigate('dashboard')}
                 >
                     <LayoutDashboard className="icon" />
                     <span>Workspace overview</span>
                 </button>
 
-                <button className="sidebar-link" onClick={onCreateEndpoint}>
+                <button className="sidebar-link" onClick={handleCreate}>
                     <Plus className="icon" />
                     <span>Create route</span>
                 </button>
@@ -106,7 +146,7 @@ export default function Sidebar({
                 {selectedEndpoint && (
                     <button
                         className={`sidebar-link ${currentView === 'settings' ? 'active' : ''}`}
-                        onClick={() => onNavigate('settings')}
+                        onClick={() => handleNavigate('settings')}
                     >
                         <ShieldCheck className="icon" />
                         <span>Response studio</span>
@@ -131,7 +171,7 @@ export default function Sidebar({
                                 <button
                                     key={endpoint.id}
                                     className={`sidebar-endpoint-item ${selectedEndpoint?.id === endpoint.id ? 'active' : ''}`}
-                                    onClick={() => onSelectEndpoint(endpoint)}
+                                    onClick={() => handleSelectRoute(endpoint)}
                                 >
                                     <div className={`sidebar-endpoint-dot ${active ? '' : 'inactive'}`} />
                                     <div className="sidebar-endpoint-copy">
@@ -172,7 +212,7 @@ export default function Sidebar({
                         <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
                     </button>
 
-                    <button className="sidebar-link" onClick={onLogout}>
+                    <button className="sidebar-link" onClick={handleLogout}>
                         <LogOut className="icon" />
                         <span>Sign out</span>
                     </button>

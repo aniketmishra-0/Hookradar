@@ -8,6 +8,10 @@ import EndpointView from './components/EndpointView';
 import ResponseConfig from './components/ResponseConfig';
 import Sidebar from './components/Sidebar';
 import WorkspaceSettingsModal from './components/WorkspaceSettingsModal';
+import {
+  createDefaultImportantItems,
+  normalizeImportantItems,
+} from './utils/quickAccess';
 import { defaultSectionPreferences, normalizeSectionPreferences } from './utils/layoutPreferences';
 import { api, createWebSocket, isLocalHostname } from './utils/api';
 import './index.css';
@@ -21,16 +25,6 @@ const defaultSidebarSettings = {
   autoClose: true,
   lockOpen: false,
 };
-const importantItemTones = ['blue', 'green', 'orange', 'purple', 'cyan', 'red'];
-const quickAccessActionTypes = ['none', 'dashboard', 'create', 'workspace-settings', 'selected-endpoint', 'response-studio', 'endpoint', 'url'];
-const defaultImportantItems = Array.from({ length: 4 }, (_, index) => ({
-  id: `important-${index + 1}`,
-  label: '',
-  detail: '',
-  tone: importantItemTones[index % importantItemTones.length],
-  actionType: 'none',
-  target: '',
-}));
 
 function clampSidebarWidth(value) {
   const parsed = Number(value);
@@ -65,29 +59,6 @@ function clampUiFontSize(value) {
   return Math.min(16, Math.max(10, parsed));
 }
 
-function normalizeImportantTone(value, index = 0) {
-  return importantItemTones.includes(value) ? value : importantItemTones[index % importantItemTones.length];
-}
-
-function normalizeQuickAccessActionType(value) {
-  return quickAccessActionTypes.includes(value) ? value : 'none';
-}
-
-function normalizeImportantItem(value = {}, index = 0) {
-  return {
-    id: typeof value.id === 'string' && value.id.trim() ? value.id : `important-${index + 1}`,
-    label: typeof value.label === 'string' ? value.label.slice(0, 48) : '',
-    detail: typeof value.detail === 'string' ? value.detail.slice(0, 180) : '',
-    tone: normalizeImportantTone(value.tone, index),
-    actionType: normalizeQuickAccessActionType(value.actionType),
-    target: typeof value.target === 'string' ? value.target.slice(0, 240) : '',
-  };
-}
-
-function normalizeImportantItems(value = []) {
-  return defaultImportantItems.map((fallback, index) => normalizeImportantItem(value[index] ?? fallback, index));
-}
-
 export default function App() {
   const [endpoints, setEndpoints] = useState([]);
   const [stats, setStats] = useState(defaultStats);
@@ -107,9 +78,15 @@ export default function App() {
   });
   const [importantItems, setImportantItems] = useState(() => {
     try {
-      return normalizeImportantItems(JSON.parse(localStorage.getItem('workspaceImportantItems') || '[]'));
+      const savedValue = localStorage.getItem('workspaceImportantItems');
+
+      if (savedValue === null) {
+        return createDefaultImportantItems();
+      }
+
+      return normalizeImportantItems(JSON.parse(savedValue));
     } catch {
-      return defaultImportantItems;
+      return createDefaultImportantItems();
     }
   });
   const [sectionPreferences, setSectionPreferences] = useState(() => {

@@ -1,12 +1,10 @@
 import {
     ArrowDown,
-    ArrowUpRight,
     ArrowUp,
     Bookmark,
     Blocks,
     Check,
     GripVertical,
-    LayoutDashboard,
     Lock,
     MonitorCog,
     PanelLeftClose,
@@ -14,10 +12,8 @@ import {
     PanelRightOpen,
     Plus,
     RotateCcw,
-    Settings2,
-    ShieldCheck,
     SlidersHorizontal,
-    Webhook,
+    Trash2,
     X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -27,6 +23,20 @@ import {
     layoutSectionOptions,
     normalizeSectionPreferences,
 } from '../utils/layoutPreferences';
+import {
+    cleanImportantValue,
+    createDefaultImportantItems,
+    createQuickAccessItem,
+    getQuickAccessIcon,
+    getQuickAccessMeta,
+    importantItemTones,
+    isQuickAccessConfigured,
+    normalizeImportantItems,
+    quickAccessActions,
+    quickAccessIconOptions,
+    quickAccessInteractionOptions,
+    quickAccessOpenModeOptions,
+} from '../utils/quickAccess';
 
 const fontSizePresets = [
     { value: 10, label: 'Ultra compact', description: 'Maximum density for large screens' },
@@ -58,7 +68,7 @@ const sidebarModes = [
 ];
 
 const sidebarWidthPresets = [236, 264, 300, 336];
-const importantItemTones = [
+const importantToneOptions = [
     { value: 'blue', label: 'Info' },
     { value: 'green', label: 'Live' },
     { value: 'orange', label: 'Warning' },
@@ -66,24 +76,6 @@ const importantItemTones = [
     { value: 'cyan', label: 'Link' },
     { value: 'red', label: 'Critical' },
 ];
-const quickAccessActions = [
-    { value: 'none', label: 'Note only', description: 'Keep a pinned reference without navigation.' },
-    { value: 'dashboard', label: 'Workspace overview', description: 'Jump to the dashboard.' },
-    { value: 'create', label: 'Create route', description: 'Open the create endpoint modal.' },
-    { value: 'workspace-settings', label: 'Workspace settings', description: 'Open the settings modal.' },
-    { value: 'selected-endpoint', label: 'Current endpoint', description: 'Open the endpoint currently active in the workspace.' },
-    { value: 'response-studio', label: 'Current response studio', description: 'Jump into response tools for the current endpoint.' },
-    { value: 'endpoint', label: 'Specific endpoint', description: 'Open a saved endpoint directly.' },
-    { value: 'url', label: 'External URL', description: 'Open an external link in one click.' },
-];
-const defaultImportantItems = Array.from({ length: 4 }, (_, index) => ({
-    id: `important-${index + 1}`,
-    label: '',
-    detail: '',
-    tone: importantItemTones[index % importantItemTones.length].value,
-    actionType: 'none',
-    target: '',
-}));
 
 function clampFontSize(value) {
     const parsed = Number(value);
@@ -109,151 +101,8 @@ function normalizeSidebarMode(value) {
     return ['expanded', 'collapsed', 'hidden'].includes(value) ? value : 'expanded';
 }
 
-function normalizeImportantTone(value, index = 0) {
-    return importantItemTones.some((tone) => tone.value === value)
-        ? value
-        : importantItemTones[index % importantItemTones.length].value;
-}
-
-function normalizeQuickAccessActionType(value) {
-    return quickAccessActions.some((action) => action.value === value) ? value : 'none';
-}
-
-function normalizeImportantItem(value = {}, index = 0) {
-    return {
-        id: typeof value.id === 'string' && value.id.trim() ? value.id : `important-${index + 1}`,
-        label: typeof value.label === 'string' ? value.label.slice(0, 48) : '',
-        detail: typeof value.detail === 'string' ? value.detail.slice(0, 180) : '',
-        tone: normalizeImportantTone(value.tone, index),
-        actionType: normalizeQuickAccessActionType(value.actionType),
-        target: typeof value.target === 'string' ? value.target.slice(0, 240) : '',
-    };
-}
-
-function normalizeImportantItems(value = []) {
-    return defaultImportantItems.map((fallback, index) => normalizeImportantItem(value[index] ?? fallback, index));
-}
-
-function cleanImportantValue(value) {
-    return typeof value === 'string' ? value.trim() : '';
-}
-
 function getImportantItemTone(item) {
-    return normalizeImportantTone(item?.tone);
-}
-
-function normalizeQuickAccessUrl(value) {
-    const normalizedValue = cleanImportantValue(value);
-
-    if (!normalizedValue) {
-        return '';
-    }
-
-    return /^https?:\/\//i.test(normalizedValue) ? normalizedValue : `https://${normalizedValue}`;
-}
-
-function isQuickAccessConfigured(item) {
-    const label = cleanImportantValue(item?.label);
-    const detail = cleanImportantValue(item?.detail);
-    const target = cleanImportantValue(item?.target);
-
-    if (item?.actionType === 'url') {
-        return Boolean(label || detail || target);
-    }
-
-    if (item?.actionType && item.actionType !== 'none') {
-        return true;
-    }
-
-    return Boolean(label || detail);
-}
-
-function getQuickAccessMeta(item, endpoints, selectedEndpoint) {
-    switch (item?.actionType) {
-        case 'dashboard':
-            return {
-                label: 'Workspace overview',
-                detail: 'Jump to the dashboard and recent activity.',
-                icon: LayoutDashboard,
-                actionable: true,
-            };
-        case 'create':
-            return {
-                label: 'Create route',
-                detail: 'Open the endpoint creation flow instantly.',
-                icon: Plus,
-                actionable: true,
-            };
-        case 'workspace-settings':
-            return {
-                label: 'Workspace settings',
-                detail: 'Open interface and sidebar controls.',
-                icon: Settings2,
-                actionable: true,
-            };
-        case 'selected-endpoint':
-            return selectedEndpoint
-                ? {
-                    label: selectedEndpoint.name || selectedEndpoint.slug,
-                    detail: `/hook/${selectedEndpoint.slug}`,
-                    icon: Webhook,
-                    actionable: true,
-                }
-                : {
-                    label: 'Current endpoint',
-                    detail: 'Open an endpoint first to use this shortcut.',
-                    icon: Webhook,
-                    actionable: false,
-                };
-        case 'response-studio':
-            return selectedEndpoint
-                ? {
-                    label: 'Response studio',
-                    detail: `Manage ${selectedEndpoint.name || selectedEndpoint.slug}`,
-                    icon: ShieldCheck,
-                    actionable: true,
-                }
-                : {
-                    label: 'Response studio',
-                    detail: 'Select an endpoint before using this shortcut.',
-                    icon: ShieldCheck,
-                    actionable: false,
-                };
-        case 'endpoint': {
-            const targetEndpoint = endpoints.find((endpoint) => String(endpoint.id) === String(item?.target) || endpoint.slug === item?.target);
-
-            return targetEndpoint
-                ? {
-                    label: targetEndpoint.name || targetEndpoint.slug,
-                    detail: `/hook/${targetEndpoint.slug}`,
-                    icon: Webhook,
-                    actionable: true,
-                }
-                : {
-                    label: 'Specific endpoint',
-                    detail: 'Choose an endpoint to make this shortcut work.',
-                    icon: Webhook,
-                    actionable: false,
-                };
-        }
-        case 'url': {
-            const normalizedUrl = normalizeQuickAccessUrl(item?.target);
-
-            return {
-                label: normalizedUrl || 'External URL',
-                detail: normalizedUrl || 'Add a URL to make this shortcut work.',
-                icon: ArrowUpRight,
-                actionable: Boolean(normalizedUrl),
-            };
-        }
-        default:
-            return {
-                label: 'Pinned note',
-                detail: 'Reference only',
-                icon: Bookmark,
-                actionable: false,
-            };
-    }
+    return importantItemTones.includes(item?.tone) ? item.tone : importantItemTones[0];
 }
 
 export default function WorkspaceSettingsModal({
@@ -329,13 +178,13 @@ export default function WorkspaceSettingsModal({
             value: 'important',
             label: 'Quick access',
             description: 'Shortcuts and saved links',
-            summary: `${visibleImportantItems.length} saved`,
+            summary: `${draftImportantItems.length} shortcuts`,
             icon: Bookmark,
         },
     ];
 
     const handleImportantItemChange = (index, field, value) => {
-        const nextValue = field === 'tone' || field === 'actionType'
+        const nextValue = field === 'tone' || field === 'actionType' || field === 'interaction' || field === 'openMode' || field === 'icon'
             ? value
             : value.slice(0, field === 'label' ? 48 : field === 'target' ? 240 : 180);
 
@@ -349,6 +198,30 @@ export default function WorkspaceSettingsModal({
                     : item
             ))
         ));
+    };
+
+    const addImportantItem = () => {
+        setDraftImportantItems((previous) => [
+            ...previous,
+            createQuickAccessItem(previous.length, {
+                tone: importantItemTones[previous.length % importantItemTones.length],
+            }),
+        ]);
+    };
+
+    const removeImportantItem = (index) => {
+        setDraftImportantItems((previous) => previous.filter((_, itemIndex) => itemIndex !== index));
+        setDraggedImportantIndex((previous) => {
+            if (previous === null) {
+                return null;
+            }
+
+            if (previous === index) {
+                return null;
+            }
+
+            return previous > index ? previous - 1 : previous;
+        });
     };
 
     const moveImportantItem = (fromIndex, toIndex) => {
@@ -421,7 +294,7 @@ export default function WorkspaceSettingsModal({
         setDraftSidebarMode('expanded');
         setDraftSidebarAutoClose(true);
         setDraftSidebarLockOpen(false);
-        setDraftImportantItems(defaultImportantItems);
+        setDraftImportantItems(createDefaultImportantItems());
         setDraftSectionPreferences(defaultSectionPreferences);
         setDraggedImportantIndex(null);
     };
@@ -743,10 +616,22 @@ export default function WorkspaceSettingsModal({
 
                                 <div className="display-settings-grid">
                                     <div className="display-settings-section display-settings-surface">
-                                        <div className="important-items-grid">
-                                            {draftImportantItems.map((item, index) => (
-                                                (() => {
+                                        <div className="important-items-toolbar">
+                                            <div>
+                                                <strong>Shortcut builder</strong>
+                                                <p>Add as many routes, issue links, docs, incident pages, or internal notes as you need.</p>
+                                            </div>
+                                            <button type="button" className="sidebar-width-preset important-items-add-button" onClick={addImportantItem}>
+                                                <Plus size={14} />
+                                                Add shortcut
+                                            </button>
+                                        </div>
+
+                                        {draftImportantItems.length > 0 ? (
+                                            <div className="important-items-grid">
+                                                {draftImportantItems.map((item, index) => {
                                                     const quickAccessMeta = getQuickAccessMeta(item, endpoints, selectedEndpoint);
+                                                    const ShortcutIcon = getQuickAccessIcon(item.icon, quickAccessMeta.icon);
 
                                                     return (
                                                         <div
@@ -759,15 +644,21 @@ export default function WorkspaceSettingsModal({
                                                             onDragEnd={handleImportantDragEnd}
                                                         >
                                                             <div className="important-item-editor-header">
-                                                                <div className="important-item-editor-title">
+                                                                <div className="important-item-editor-heading">
                                                                     <span className="important-item-grip" aria-hidden="true">
                                                                         <GripVertical size={14} />
                                                                     </span>
-                                                                    <strong>Shortcut {index + 1}</strong>
+                                                                    <span className={`important-item-icon-preview tone-${getImportantItemTone(item)}`}>
+                                                                        <ShortcutIcon size={14} />
+                                                                    </span>
+                                                                    <div className="important-item-editor-title">
+                                                                        <strong>Shortcut {index + 1}</strong>
+                                                                        <span>{cleanImportantValue(item.label) || quickAccessMeta.label}</span>
+                                                                    </div>
                                                                 </div>
 
                                                                 <div className="important-item-editor-actions">
-                                                                    <span>{isQuickAccessConfigured(item) ? (quickAccessMeta.actionable ? 'Ready' : 'Setup') : 'Empty'}</span>
+                                                                    <span className="important-item-status">{isQuickAccessConfigured(item) ? (quickAccessMeta.actionable ? 'Ready' : 'Setup') : 'Empty'}</span>
                                                                     <button
                                                                         type="button"
                                                                         className="important-item-action"
@@ -785,6 +676,14 @@ export default function WorkspaceSettingsModal({
                                                                         aria-label={`Move shortcut ${index + 1} down`}
                                                                     >
                                                                         <ArrowDown size={14} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="important-item-action important-item-action-danger"
+                                                                        onClick={() => removeImportantItem(index)}
+                                                                        aria-label={`Remove shortcut ${index + 1}`}
+                                                                    >
+                                                                        <Trash2 size={14} />
                                                                     </button>
                                                                 </div>
                                                             </div>
@@ -806,6 +705,72 @@ export default function WorkspaceSettingsModal({
                                                                     {quickAccessActions.find((action) => action.value === item.actionType)?.description}
                                                                 </div>
                                                             </div>
+
+                                                            <div className="form-group">
+                                                                <label className="form-label">Icon</label>
+                                                                <div className="important-icon-grid">
+                                                                    {quickAccessIconOptions.map((iconOption) => {
+                                                                        const IconOption = iconOption.icon;
+
+                                                                        return (
+                                                                            <button
+                                                                                key={iconOption.value}
+                                                                                type="button"
+                                                                                className={`important-icon-chip ${item.icon === iconOption.value ? 'active' : ''}`}
+                                                                                onClick={() => handleImportantItemChange(index, 'icon', iconOption.value)}
+                                                                                title={iconOption.description}
+                                                                                aria-label={`${iconOption.label} icon`}
+                                                                            >
+                                                                                <IconOption size={14} />
+                                                                                <span>{iconOption.label}</span>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                                <div className="form-hint">
+                                                                    Choose a fixed visual icon or keep it on Auto to follow the shortcut action.
+                                                                </div>
+                                                            </div>
+
+                                                            {(item.actionType === 'url' || item.actionType === 'endpoint' || item.actionType === 'selected-endpoint') && (
+                                                                <div className="form-group">
+                                                                    <label className="form-label">Click behavior</label>
+                                                                    <select
+                                                                        className="form-input"
+                                                                        value={item.interaction}
+                                                                        onChange={(event) => handleImportantItemChange(index, 'interaction', event.target.value)}
+                                                                    >
+                                                                        {quickAccessInteractionOptions.map((option) => (
+                                                                            <option key={option.value} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="form-hint">
+                                                                        {item.actionType === 'url'
+                                                                            ? 'Open the URL directly or copy it from the sidebar.'
+                                                                            : 'Open the endpoint workspace or copy its webhook URL.'}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {item.actionType === 'url' && item.interaction === 'open' && (
+                                                                <div className="form-group">
+                                                                    <label className="form-label">Open mode</label>
+                                                                    <select
+                                                                        className="form-input"
+                                                                        value={item.openMode}
+                                                                        onChange={(event) => handleImportantItemChange(index, 'openMode', event.target.value)}
+                                                                    >
+                                                                        {quickAccessOpenModeOptions.map((option) => (
+                                                                            <option key={option.value} value={option.value}>
+                                                                                {option.label}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                    <div className="form-hint">Choose whether the link replaces the app tab or opens separately.</div>
+                                                                </div>
+                                                            )}
 
                                                             {item.actionType === 'endpoint' && (
                                                                 <div className="form-group">
@@ -864,7 +829,7 @@ export default function WorkspaceSettingsModal({
                                                             <div className="form-group">
                                                                 <label className="form-label">Color tag</label>
                                                                 <div className="important-tone-row">
-                                                                    {importantItemTones.map((tone) => (
+                                                                    {importantToneOptions.map((tone) => (
                                                                         <button
                                                                             key={tone.value}
                                                                             type="button"
@@ -879,9 +844,18 @@ export default function WorkspaceSettingsModal({
                                                             </div>
                                                         </div>
                                                     );
-                                                })()
-                                            ))}
-                                        </div>
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className="important-items-empty important-items-editor-empty">
+                                                <strong>No shortcuts yet</strong>
+                                                <p>Start a custom list for client links, live incidents, docs, endpoint routes, or anything you need one click away.</p>
+                                                <button type="button" className="sidebar-width-preset important-items-add-button" onClick={addImportantItem}>
+                                                    <Plus size={14} />
+                                                    Add first shortcut
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="display-settings-section display-settings-surface">
@@ -895,7 +869,7 @@ export default function WorkspaceSettingsModal({
                                             {visibleImportantItems.length > 0 ? (
                                                 visibleImportantItems.map((item) => {
                                                     const quickAccessMeta = getQuickAccessMeta(item, endpoints, selectedEndpoint);
-                                                    const PreviewIcon = quickAccessMeta.icon;
+                                                    const PreviewIcon = getQuickAccessIcon(item.icon, quickAccessMeta.icon);
 
                                                     return (
                                                         <div key={item.id} className={`sidebar-important-item tone-${getImportantItemTone(item)}`}>

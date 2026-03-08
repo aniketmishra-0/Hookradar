@@ -1,10 +1,8 @@
 import {
     Activity,
-    ArrowUpRight,
     Bookmark,
     Clock3,
     LayoutDashboard,
-    Link2,
     LogOut,
     Moon,
     Plus,
@@ -13,131 +11,20 @@ import {
     ShieldCheck,
     Sparkles,
     Sun,
-    Webhook,
     X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { formatTime } from '../utils/api';
+import {
+    cleanImportantValue,
+    getQuickAccessIcon,
+    getQuickAccessMeta,
+    isQuickAccessConfigured,
+} from '../utils/quickAccess';
 
 const isEndpointActive = (endpoint) => endpoint.is_active === 1 || endpoint.is_active === true;
-const normalizeImportantValue = (value) => (typeof value === 'string' ? value.trim() : '');
-
-const hasImportantContent = (item) => {
-    const label = normalizeImportantValue(item?.label);
-    const detail = normalizeImportantValue(item?.detail);
-    const target = normalizeImportantValue(item?.target);
-
-    if (item?.actionType === 'url') {
-        return label || detail || target;
-    }
-
-    if (item?.actionType && item.actionType !== 'none') {
-        return true;
-    }
-
-    return label || detail;
-};
 const getImportantTone = (item) => (typeof item?.tone === 'string' && item.tone ? item.tone : 'blue');
-const normalizeQuickAccessUrl = (value) => {
-    const normalizedValue = normalizeImportantValue(value);
-
-    if (!normalizedValue) {
-        return '';
-    }
-
-    return /^https?:\/\//i.test(normalizedValue) ? normalizedValue : `https://${normalizedValue}`;
-};
-
-const getQuickAccessMeta = (item, endpoints, selectedEndpoint) => {
-    switch (item?.actionType) {
-        case 'dashboard':
-            return {
-                label: 'Workspace overview',
-                detail: 'Open the dashboard and summary view.',
-                icon: LayoutDashboard,
-                actionable: true,
-            };
-        case 'create':
-            return {
-                label: 'Create route',
-                detail: 'Open the create endpoint flow.',
-                icon: Plus,
-                actionable: true,
-            };
-        case 'workspace-settings':
-            return {
-                label: 'Workspace settings',
-                detail: 'Open density and sidebar controls.',
-                icon: Settings2,
-                actionable: true,
-            };
-        case 'selected-endpoint':
-            return selectedEndpoint
-                ? {
-                    label: selectedEndpoint.name || selectedEndpoint.slug,
-                    detail: `/hook/${selectedEndpoint.slug}`,
-                    icon: Webhook,
-                    actionable: true,
-                }
-                : {
-                    label: 'Current endpoint',
-                    detail: 'Open an endpoint first to use this shortcut.',
-                    icon: Webhook,
-                    actionable: false,
-                };
-        case 'response-studio':
-            return selectedEndpoint
-                ? {
-                    label: 'Response studio',
-                    detail: `Manage ${selectedEndpoint.name || selectedEndpoint.slug}`,
-                    icon: ShieldCheck,
-                    actionable: true,
-                }
-                : {
-                    label: 'Response studio',
-                    detail: 'Select an endpoint before opening response tools.',
-                    icon: ShieldCheck,
-                    actionable: false,
-                };
-        case 'endpoint': {
-            const targetEndpoint = endpoints.find((endpoint) => String(endpoint.id) === String(item?.target) || endpoint.slug === item?.target);
-
-            return targetEndpoint
-                ? {
-                    label: targetEndpoint.name || targetEndpoint.slug,
-                    detail: `/hook/${targetEndpoint.slug}`,
-                    icon: Webhook,
-                    actionable: true,
-                    endpoint: targetEndpoint,
-                }
-                : {
-                    label: 'Saved endpoint',
-                    detail: 'This endpoint is no longer available.',
-                    icon: Webhook,
-                    actionable: false,
-                };
-        }
-        case 'url': {
-            const normalizedUrl = normalizeQuickAccessUrl(item?.target);
-
-            return {
-                label: normalizedUrl || 'External link',
-                detail: normalizedUrl || 'Add a valid URL to use this shortcut.',
-                icon: Link2,
-                actionable: Boolean(normalizedUrl),
-                external: true,
-                href: normalizedUrl,
-            };
-        }
-        default:
-            return {
-                label: 'Pinned note',
-                detail: 'Reference only',
-                icon: Bookmark,
-                actionable: false,
-            };
-    }
-};
 
 export default function Sidebar({
     currentUser,
@@ -168,7 +55,7 @@ export default function Sidebar({
     const recentEndpoints = [...endpoints]
         .sort((a, b) => new Date(b.last_request_at || b.created_at || 0) - new Date(a.last_request_at || a.created_at || 0))
         .slice(0, 6);
-    const visibleImportantItems = importantItems.filter(hasImportantContent);
+    const visibleImportantItems = importantItems.filter(isQuickAccessConfigured);
 
     useEffect(() => {
         if (!isCollapsed || !isImportantItemsOpen) {
@@ -215,7 +102,7 @@ export default function Sidebar({
         onOpenWorkspaceSettings();
     };
 
-    const handleQuickAccess = (item) => {
+    const handleQuickAccess = async (item) => {
         const quickAccessMeta = getQuickAccessMeta(item, endpoints, selectedEndpoint);
 
         if (!quickAccessMeta.actionable) {
@@ -223,6 +110,19 @@ export default function Sidebar({
         }
 
         setIsImportantItemsOpen(false);
+
+        if (item.interaction === 'copy' && quickAccessMeta.copyValue) {
+            try {
+                await navigator.clipboard.writeText(quickAccessMeta.copyValue);
+                toast.success('Shortcut URL copied');
+                if (isCompactLayout) {
+                    onClose();
+                }
+            } catch {
+                toast.error('Failed to copy shortcut URL');
+            }
+            return;
+        }
 
         switch (item.actionType) {
             case 'dashboard':
@@ -251,9 +151,13 @@ export default function Sidebar({
                 break;
             case 'url':
                 if (quickAccessMeta.href) {
-                    window.open(quickAccessMeta.href, '_blank', 'noopener,noreferrer');
-                    if (isCompactLayout) {
-                        onClose();
+                    if (item.openMode === 'same-tab') {
+                        window.location.assign(quickAccessMeta.href);
+                    } else {
+                        window.open(quickAccessMeta.href, '_blank', 'noopener,noreferrer');
+                        if (isCompactLayout) {
+                            onClose();
+                        }
                     }
                 }
                 break;
@@ -264,9 +168,9 @@ export default function Sidebar({
 
     const renderQuickAccessItem = (item) => {
         const quickAccessMeta = getQuickAccessMeta(item, endpoints, selectedEndpoint);
-        const ActionIcon = quickAccessMeta.external ? ArrowUpRight : quickAccessMeta.icon;
-        const itemTitle = normalizeImportantValue(item.label) || quickAccessMeta.label;
-        const itemDetail = normalizeImportantValue(item.detail) || quickAccessMeta.detail;
+        const ActionIcon = getQuickAccessIcon(item.icon, quickAccessMeta.icon);
+        const itemTitle = cleanImportantValue(item.label) || quickAccessMeta.label;
+        const itemDetail = cleanImportantValue(item.detail) || quickAccessMeta.detail;
         const toneClass = `tone-${getImportantTone(item)}`;
         const itemContent = (
             <>
